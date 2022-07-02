@@ -1,3 +1,3 @@
 export * from './Chat';
 export * from './User';
-export * from './load';
+export * from './loader';

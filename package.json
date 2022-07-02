@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "prebuild": "rimraf dist",
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
@@ -13,7 +14,7 @@
     "type": "git",
     "url": "git+https://github.com/SoftTaco97/chats-api.git"
   },
-  "author": "",
+  "author": "Jared Martinez <jared@jaredmartinez.dev>",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/SoftTaco97/chats-api/issues"
@@ -21,9 +22,12 @@
   "homepage": "https://github.com/SoftTaco97/chats-api#readme",
   "devDependencies": {
     "@types/express": "^4.17.13",
+    "@types/jest": "^28.1.4",
     "@types/node": "^18.0.0",
     "@types/validator": "^13.7.3",
     "jest": "^28.1.2",
+    "rimraf": "^3.0.2",
+    "ts-jest": "^28.0.5",
     "ts-node-dev": "^2.0.0",
     "typescript": "^4.7.4"
   },

@@ -1,11 +1,14 @@
 import express from 'express';
 import bodyParser from 'body-parser';
+import path from 'path';
 import dotenv from 'dotenv';
 import routes from './routes';
 import { errorHandler } from './middleware';
-import path from 'path';
+import { connectToDatabase } from './models';
 
 dotenv.config({ path: path.resolve(__dirname, '..', '.env') });
+
+connectToDatabase();
 
 const app = express();
 const port = process.env.EXPRESS_PORT || 3000;
