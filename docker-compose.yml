@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:5.7
+    restart: on-failure
+    environment:
+      MYSQL_USER: $DB_USER
+      MYSQL_ROOT_PASSWORD: $DB_ROOT_PASSWORD
+      MYSQL_PASSWORD: $DB_PASSWORD
+      MYSQL_DATABASE: $DB_NAME
+    ports:
+      - ${DB_PORT}:${DB_PORT}
+    volumes:
+      - db:/var/lib/mysql
+  app:
+    depends_on:
+      - mysql
+    build: ./
+    restart: on-failure
+    ports:
+      - ${EXPRESS_PORT}:${EXPRESS_PORT}
+    stdin_open: true
+    tty: true
+volumes: 
+  db:
+
