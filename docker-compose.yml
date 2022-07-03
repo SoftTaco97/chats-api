@@ -9,11 +9,16 @@ services:
       MYSQL_DATABASE: $DB_NAME
     ports:
       - ${DB_PORT}:${DB_PORT}
+    healthcheck:
+        test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+        interval: 1s
+        retries: 100
     volumes:
       - db:/var/lib/mysql
   app:
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     build: ./
     ports:
       - ${EXPRESS_PORT}:${EXPRESS_PORT}
