@@ -122,7 +122,7 @@ export class ChatsController {
         expiration_date: expirationDate,
       });
 
-      return res.status(200).json({
+      return res.status(201).json({
         id: chat.uuid
       });
     } catch (err) {

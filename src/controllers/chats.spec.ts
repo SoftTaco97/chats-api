@@ -267,7 +267,7 @@ describe('src/controllers/chats.ts', () => {
         expect(Chat.create).toHaveBeenCalledWith(expect.objectContaining({
           expiration_date: currentTime.setSeconds(currentTime.getSeconds() + mockReq.body.timeout),
         }));
-        expect(mockRes.status).toHaveBeenCalledWith(200);
+        expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
           id: mockChat.uuid,
         });
@@ -291,7 +291,7 @@ describe('src/controllers/chats.ts', () => {
         expect(Chat.create).toHaveBeenCalledWith(expect.objectContaining({
           expiration_date: currentTime.setSeconds(currentTime.getSeconds() + 60),
         }));
-        expect(mockRes.status).toHaveBeenCalledWith(200);
+        expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
           id: mockChat.uuid,
         });
@@ -316,7 +316,7 @@ describe('src/controllers/chats.ts', () => {
           uuid: mockUuid,
           user_id: mockUser.id,
         }));
-        expect(mockRes.status).toHaveBeenCalledWith(200);
+        expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
           id: mockChat.uuid,
         });
