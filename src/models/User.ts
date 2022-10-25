@@ -3,13 +3,15 @@ import {
   Model,
   Column,
   HasMany,
-  Index
+  Index,
+  Unique
 } from 'sequelize-typescript'
 import { Chat } from './Chat';
 
 @Table
 export class User extends Model {
   @Index
+  @Unique
   @Column
   username!: string
 

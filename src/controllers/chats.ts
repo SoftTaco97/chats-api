@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
-import crypto from 'crypto';
 import { Chat, User } from "../models";
 import { ChatsApiError } from "../utils";
+import { Op } from "sequelize";
 
 export class ChatsController {
   /**
@@ -25,14 +25,10 @@ export class ChatsController {
   public static async getChatForId(req: Request, res: Response, next: Function): Promise <Response> {
     try {
       const { id } = req.query;
-      
-      if (typeof id !== 'string') {
-        throw new ChatsApiError('"id" must be string', 400);
-      }
 
       const chat = await Chat.findOne({
         where: {
-          uuid: id,
+          id,
         },
         attributes: ['expiration_date', 'text'],
         include: [{
@@ -62,9 +58,7 @@ export class ChatsController {
     try {
       const { username } = req.query;
 
-      if (typeof username !== 'string') {
-        throw new ChatsApiError('"username" must be string', 400);
-      }
+      const currentTime = new Date();
 
       const user = await User.findOne({
         where: {
@@ -73,7 +67,13 @@ export class ChatsController {
         attributes: ['id'],
         include: [{
           model: Chat,
-          attributes: ['uuid', 'text']
+          attributes: ['id', 'text'],
+          where: {
+            expiration_date: {
+              [Op.gte]: currentTime,
+            }
+          },
+          required: false,
         }]
       });
 
@@ -81,10 +81,19 @@ export class ChatsController {
         throw new ChatsApiError('No user found for username', 404);
       }
 
-      const chatsForUser = user.Chats.map(({ uuid, text }) => ({
-        id: uuid,
+      const chatsForUser = user.Chats.map(({ id, text }) => ({
+        id,
         text,
       }));
+
+      // Update the expiration date to hide the chats that have been seen by the user
+      await Chat.update({
+        expiration_date: currentTime,
+      }, {
+        where: {
+          id: chatsForUser.map(({ id }) => id),
+        }
+      });
 
       return res.status(200).json(chatsForUser);
     } catch (err) {
@@ -117,13 +126,12 @@ export class ChatsController {
 
       const chat = await Chat.create({
         text,
-        uuid: crypto.randomUUID(),
         user_id: user.id,
         expiration_date: expirationDate,
       });
 
       return res.status(201).json({
-        id: chat.uuid
+        id: chat.id
       });
     } catch (err) {
       return next(err);

@@ -1,17 +1,18 @@
 import { Request, Response } from "express";
-import crypto from 'crypto';
 import { Chat, User } from "../models";
 import { ChatsApiError } from "../utils";
 import { ChatsController } from "./chats";
-
-jest.mock('crypto', () => ({
-  randomUUID: jest.fn(),
-}));
+import { Op } from "sequelize";
 
 describe('src/controllers/chats.ts', () => {
   describe('ChatsController', () => {
     const mockNext = jest.fn();
     let mockRes: Response;
+
+    beforeAll(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(new Date('2020-12-12'));
+    });
 
     beforeEach(() => {
      mockRes = {
@@ -19,6 +20,8 @@ describe('src/controllers/chats.ts', () => {
         json: jest.fn().mockReturnThis(),
       } as unknown as Response;
     });
+
+    afterAll(jest.useRealTimers);
 
     describe('getChats', () => {
       let mockReq: Request;
@@ -72,16 +75,6 @@ describe('src/controllers/chats.ts', () => {
         jest.spyOn(Chat, 'findOne').mockResolvedValue(null);
       });
 
-      it('Should throw when an id is not a string', async () => {
-        mockReq.query.id = 123 as any;
-
-        await ChatsController.getChatForId(mockReq, mockRes, mockNext);
-
-        expect(mockNext).toHaveBeenCalledWith(new ChatsApiError('"id" must be string', 400));
-        expect(mockRes.status).not.toHaveBeenCalled();
-        expect(mockRes.json).not.toHaveBeenCalled();
-      });
-
       it('Should throw when there is no chat for the id provided', async () => {
         await ChatsController.getChatForId(mockReq, mockRes, mockNext);
 
@@ -105,7 +98,7 @@ describe('src/controllers/chats.ts', () => {
 
         expect(Chat.findOne).toHaveBeenCalledWith({
           where: {
-            uuid: mockReq.query.id,
+            id: mockReq.query.id,
           },
           attributes: ['expiration_date', 'text'],
           include: [{
@@ -146,16 +139,7 @@ describe('src/controllers/chats.ts', () => {
         } as unknown as Request;
 
         jest.spyOn(User, 'findOne').mockResolvedValue(null);
-      });
-
-      it('Should throw when the username provided is not a string', async () => {
-        mockReq.query.username = 123 as any;
-
-        await ChatsController.getChatsForUsername(mockReq, mockRes, mockNext);
-
-        expect(mockNext).toHaveBeenCalledWith(new ChatsApiError('"username" must be string', 400));
-        expect(mockRes.status).not.toHaveBeenCalled();
-        expect(mockRes.json).not.toHaveBeenCalled();
+        jest.spyOn(Chat, 'update').mockResolvedValue([0]);
       });
 
       it('Should throw when there is no user for the username provided', async () => {
@@ -170,7 +154,7 @@ describe('src/controllers/chats.ts', () => {
         const mockUserWithChats = {
           id: 'test-id',
             Chats: [{
-            uuid: 'testing',
+            id: 'testing',
             text: 'test-text',
           }]
         };
@@ -186,13 +170,51 @@ describe('src/controllers/chats.ts', () => {
           attributes: ['id'],
           include: [{
             model: Chat,
-            attributes: ['uuid', 'text']
+            attributes: ['id', 'text'],
+            where: {
+              expiration_date: {
+                [Op.gte]: new Date(),
+              }
+            },
+            required: false,
           }]
         });
 
         expect(mockRes.status).toHaveBeenCalledWith(200);
         expect(mockRes.json).toHaveBeenCalledWith([{
-          id: mockUserWithChats.Chats[0].uuid,
+          id: mockUserWithChats.Chats[0].id,
+          text: mockUserWithChats.Chats[0].text,
+        }]);
+        expect(mockNext).not.toHaveBeenCalled();
+      });
+
+      it('Should expire the user\'s chats', async () => {
+        const mockUserWithChats = {
+          id: 'test-id',
+            Chats: [{
+            id: 'testing',
+            text: 'test-text',
+          }]
+        };
+
+        (User.findOne as jest.Mock).mockResolvedValue(mockUserWithChats);
+
+        await ChatsController.getChatsForUsername(mockReq, mockRes, mockNext);
+
+        expect(Chat.update).toHaveBeenCalledWith(
+          {
+          expiration_date: new Date(),
+          },
+          {
+            where: {
+              id: [mockUserWithChats.Chats[0].id],
+            },
+          }
+        );
+
+        expect(mockRes.status).toHaveBeenCalledWith(200);
+        expect(mockRes.json).toHaveBeenCalledWith([{
+          id: mockUserWithChats.Chats[0].id,
           text: mockUserWithChats.Chats[0].text,
         }]);
         expect(mockNext).not.toHaveBeenCalled();
@@ -213,7 +235,6 @@ describe('src/controllers/chats.ts', () => {
 
     describe('addChatMessage', () => {
       let mockReq: Request;
-      const mockUuid = 'mockUuid';
 
       beforeEach(() => {
         mockReq = {
@@ -225,8 +246,6 @@ describe('src/controllers/chats.ts', () => {
 
         jest.spyOn(User, 'findOrCreate').mockResolvedValue([{} as unknown as User, true]);
         jest.spyOn(Chat, 'create').mockResolvedValue(null);
-        (crypto.randomUUID as jest.Mock).mockReturnValue(mockUuid);
-        jest.useFakeTimers().setSystemTime(new Date('2022-01-01'));
       });
 
       it('Should throw when a username is not provided', async () => {
@@ -255,7 +274,7 @@ describe('src/controllers/chats.ts', () => {
           id: 'userId'
         } as unknown as User;
         const mockChat = {
-          uuid: 'test-id'
+          id: 'test-id'
         } as unknown as Chat;
 
         (User.findOrCreate as jest.Mock).mockResolvedValue([mockUser]);
@@ -269,7 +288,7 @@ describe('src/controllers/chats.ts', () => {
         }));
         expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
-          id: mockChat.uuid,
+          id: mockChat.id,
         });
         expect(mockNext).not.toHaveBeenCalled();
       });
@@ -279,7 +298,7 @@ describe('src/controllers/chats.ts', () => {
           id: 'userId'
         } as unknown as User;
         const mockChat = {
-          uuid: 'test-id'
+          id: 'test-id'
         } as unknown as Chat;
 
         (User.findOrCreate as jest.Mock).mockResolvedValue([mockUser]);
@@ -293,7 +312,7 @@ describe('src/controllers/chats.ts', () => {
         }));
         expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
-          id: mockChat.uuid,
+          id: mockChat.id,
         });
         expect(mockNext).not.toHaveBeenCalled();
       });
@@ -303,7 +322,7 @@ describe('src/controllers/chats.ts', () => {
           id: 'userId'
         } as unknown as User;
         const mockChat = {
-          uuid: 'test-id'
+          id: 'test-id'
         } as unknown as Chat;
 
         (User.findOrCreate as jest.Mock).mockResolvedValue([mockUser]);
@@ -313,12 +332,11 @@ describe('src/controllers/chats.ts', () => {
 
         expect(Chat.create).toHaveBeenCalledWith(expect.objectContaining({
           text: mockReq.body.text,
-          uuid: mockUuid,
           user_id: mockUser.id,
         }));
         expect(mockRes.status).toHaveBeenCalledWith(201);
         expect(mockRes.json).toHaveBeenCalledWith({
-          id: mockChat.uuid,
+          id: mockChat.id,
         });
         expect(mockNext).not.toHaveBeenCalled();
       });

@@ -4,15 +4,20 @@ import {
   Column,
   ForeignKey,
   BelongsTo,
-  Index
+  Default,
+  PrimaryKey,
+  DataType,
 } from 'sequelize-typescript'
 import { User } from './User';
 
 @Table
 export class Chat extends Model {
-  @Index
-  @Column
-  uuid!: string
+  @PrimaryKey
+  @Default(DataType.UUIDV4)
+  @Column({
+    type: DataType.UUID,
+  })
+  id!: string;
 
   @Column
   text!: string

@@ -17,6 +17,7 @@ export default {
   collectCoverageFrom: [
     'src/middleware/**/*.ts',
     'src/controllers/**/*.ts',
+    '!**/**/index.ts',
   ],
   coverageDirectory: "coverage",
   coverageProvider: "v8",
